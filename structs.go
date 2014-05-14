@@ -82,7 +82,11 @@ type Response struct {
 	ScrollId string `json:"_scroll_id"`
 
 	Aggregations map[string]Aggregation `json:"aggregations,omitempty"`
+	Facets       map[string]Facet
 }
+
+// Represents a facet from response
+type Facet map[string]interface{}
 
 // Represents an aggregation from response
 type Aggregation map[string]interface{}
