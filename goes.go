@@ -13,6 +13,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/url"
+	"reflect"
 	"strconv"
 	"strings"
 )
@@ -232,13 +233,52 @@ func (c *Connection) Get(index string, documentType string, id string, extraArgs
 	return r.Run()
 }
 
+func (d *Document) ListFields() (map[string]interface{}, error) {
+	if len(d.Fields) > 0 {
+		return d.Fields, nil
+	}
+
+	typeOfData := reflect.TypeOf(d.Data)
+
+	if typeOfData.Kind() == reflect.Ptr {
+		typeOfData = typeOfData.Elem()
+	}
+
+	d.Fields = make(map[string]interface{})
+
+	if typeOfData.Kind() != reflect.Struct {
+		return nil, fmt.Errorf("Error reading fields, only structs are supported")
+	}
+
+	for i := 0; i < typeOfData.NumField(); i++ {
+		field := typeOfData.Field(i)
+		if field.Anonymous {
+			continue
+		}
+		fieldValue := reflect.ValueOf(d.Data).Field(i)
+		fieldName := field.Name
+		if field.Tag.Get("json") != "" {
+			fieldName = strings.Split(field.Tag.Get("json"), ",")[0]
+		}
+		d.Fields[fieldName] = fieldValue.Interface()
+	}
+
+	return d.Fields, nil
+}
+
 // Index indexes a Document
 // The extraArgs is a list of url.Values that you can send to elasticsearch as
 // URL arguments, for example, to control routing, ttl, version, op_type, etc.
 func (c *Connection) Index(d Document, extraArgs url.Values) (Response, error) {
+	var fields map[string]interface{}
+	var err error
+	if fields, err = d.ListFields(); err != nil {
+		return Response{}, err
+	}
+
 	r := Request{
 		Conn:      c,
-		Query:     d.Fields,
+		Query:     fields,
 		IndexList: []string{d.Index.(string)},
 		TypeList:  []string{d.Type},
 		ExtraArgs: extraArgs,

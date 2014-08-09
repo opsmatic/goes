@@ -837,3 +837,29 @@ func (s *GoesTestSuite) TestAggregations(c *C) {
 	c.Assert(age["count"], Equals, 2.0)
 	c.Assert(age["sum"], Equals, 25.0+30.0)
 }
+
+func (s *GoesTestSuite) TestListFields(c *C) {
+	document := Document{
+		Index:       "index",
+		Type:        "type",
+		Id:          "id",
+		BulkCommand: "bulkCommand",
+		Data: struct {
+			Name    string
+			Address string
+			Id      int
+		}{
+			"name",
+			"address",
+			123,
+		},
+	}
+
+	documentFields, err := document.ListFields()
+	c.Assert(err, IsNil)
+
+	c.Assert(len(documentFields), Equals, 3)
+	c.Check(documentFields["Name"], Equals, "name")
+	c.Check(documentFields["Address"], Equals, "address")
+	c.Check(documentFields["Id"], Equals, 123)
+}
