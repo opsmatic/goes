@@ -262,6 +262,7 @@ func (c *Connection) Index(d Document, extraArgs url.Values) (Response, error) {
 		if typeOfFields.Kind() != reflect.Struct {
 			return Response{}, fmt.Errorf("Error reading fields, only structs and map[string]interface{} are supported")
 		}
+		fields = d.Fields
 	}
 
 	r := Request{
