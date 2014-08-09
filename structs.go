@@ -106,8 +106,7 @@ type Document struct {
 	Type        string
 	Id          interface{}
 	BulkCommand string
-	Fields      map[string]interface{}
-	Data        interface{}
+	Fields      interface{}
 }
 
 // Represents the "items" field in a _bulk response
