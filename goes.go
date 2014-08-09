@@ -31,7 +31,12 @@ func (err *SearchError) Error() string {
 // This function is pretty useless for now but might be useful in a near future
 // if wee need more features like connection pooling or load balancing.
 func NewConnection(host string, port string) *Connection {
-	return &Connection{host, port}
+	return &Connection{host, port, http.DefaultClient}
+}
+
+func (c *Connection) WithClient(cl *http.Client) *Connection {
+	c.Client = cl
+	return c
 }
 
 // CreateIndex creates a new index represented by a name and a mapping
@@ -95,9 +100,9 @@ func (c *Connection) IndexStatus(indexList []string) (Response, error) {
 	return r.Run()
 }
 
-// Bulk adds multiple documents in bulk mode to the index for a given type
-func (c *Connection) BulkSend(index string, documents []Document) (Response, error) {
-	// We do not generate a traditionnal JSON here (often a one liner)
+// Bulk adds multiple documents in bulk mode
+func (c *Connection) BulkSend(documents []Document) (Response, error) {
+	// We do not generate a traditional JSON here (often a one liner)
 	// Elasticsearch expects one line of JSON per line (EOL = \n)
 	// plus an extra \n at the very end of the document
 	//
@@ -154,11 +159,10 @@ func (c *Connection) BulkSend(index string, documents []Document) (Response, err
 	bulkData[len(bulkData)-1] = []byte(nil)
 
 	r := Request{
-		Conn:      c,
-		IndexList: []string{index},
-		method:    "POST",
-		api:       "_bulk",
-		bulkData:  bytes.Join(bulkData, []byte("\n")),
+		Conn:     c,
+		method:   "POST",
+		api:      "_bulk",
+		bulkData: bytes.Join(bulkData, []byte("\n")),
 	}
 
 	return r.Run()
@@ -285,8 +289,6 @@ func (req *Request) Run() (Response, error) {
 
 	reader := bytes.NewReader(postData)
 
-	client := http.DefaultClient
-
 	newReq, err := http.NewRequest(req.method, req.Url(), reader)
 	if err != nil {
 		return Response{}, err
@@ -296,7 +298,7 @@ func (req *Request) Run() (Response, error) {
 		newReq.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	}
 
-	resp, err := client.Do(newReq)
+	resp, err := req.Conn.Client.Do(newReq)
 	if err != nil {
 		return Response{}, err
 	}
@@ -354,7 +356,7 @@ func (r *Request) Url() string {
 func (a Aggregation) Buckets() []Bucket {
 	result := []Bucket{}
 	if buckets, ok := a["buckets"]; ok {
-		for _, bucket := range buckets.([]interface {}) {
+		for _, bucket := range buckets.([]interface{}) {
 			result = append(result, bucket.(map[string]interface{}))
 		}
 	}
@@ -373,7 +375,7 @@ func (b Bucket) DocCount() uint64 {
 }
 
 // Aggregation returns aggregation by name from bucket
-func (b Bucket) Aggregation(name string) Aggregation{
+func (b Bucket) Aggregation(name string) Aggregation {
 	if agg, ok := b[name]; ok {
 		return agg.(map[string]interface{})
 	} else {
