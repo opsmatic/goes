@@ -362,6 +362,32 @@ func (s *GoesTestSuite) TestIndexWithFieldsInStruct(c *C) {
 	c.Assert(response, DeepEquals, expectedResponse)
 }
 
+func (s *GoesTestSuite) TestIndexWithFieldsNotInMapOrStruct(c *C) {
+	indexName := "testindexwithfieldsnotinmaporstruct"
+	docType := "tweet"
+	docId := "1234"
+
+	conn := NewConnection(ES_HOST, ES_PORT)
+	// just in case
+	conn.DeleteIndex(indexName)
+
+	_, err := conn.CreateIndex(indexName, map[string]interface{}{})
+	c.Assert(err, IsNil)
+	defer conn.DeleteIndex(indexName)
+
+	d := Document{
+		Index: indexName,
+		Type:  docType,
+		Id:    docId,
+		Fields: "test",
+	}
+
+	extraArgs := make(url.Values, 1)
+	extraArgs.Set("ttl", "86400000")
+	_, err = conn.Index(d, extraArgs)
+	c.Assert(err, Not(IsNil))
+}
+
 func (s *GoesTestSuite) TestIndexIdDefined(c *C) {
 	indexName := "testindexiddefined"
 	docType := "tweet"
