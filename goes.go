@@ -140,26 +140,24 @@ func (c *Connection) BulkSend(documents []Document) (Response, error) {
 		bulkData[i] = action
 		i++
 
-		var toMarshal bool
 		if doc.Fields != nil {
-			if fields, ok := doc.Fields.(map[string]interface{}); ok {
-				if len(fields) > 0 {
-					toMarshal = true
+			if docFields, ok := doc.Fields.(map[string]interface{}); ok {
+				if len(docFields) == 0 {
+					continue
 				}
 			} else {
 				typeOfFields := reflect.TypeOf(doc.Fields)
 				if typeOfFields.Kind() == reflect.Ptr {
 					typeOfFields = typeOfFields.Elem()
 				}
-				if typeOfFields.Kind() == reflect.Struct {
-					if typeOfFields.NumField() > 0 {
-						toMarshal = true
-					}
+				if typeOfFields.Kind() != reflect.Struct {
+					return Response{}, fmt.Errorf("Document fields not in struct or map[string]interface{} format")
+				}
+				if typeOfFields.NumField() == 0 {
+					continue
 				}
 			}
-		}
 
-		if toMarshal {
 			sources, err := json.Marshal(doc.Fields)
 			if err != nil {
 				return Response{}, err
