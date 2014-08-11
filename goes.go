@@ -249,23 +249,9 @@ func (c *Connection) Get(index string, documentType string, id string, extraArgs
 // The extraArgs is a list of url.Values that you can send to elasticsearch as
 // URL arguments, for example, to control routing, ttl, version, op_type, etc.
 func (c *Connection) Index(d Document, extraArgs url.Values) (Response, error) {
-	var fields interface{}
-	if documentFields, ok := d.Fields.(map[string]interface{}); ok {
-		fields = documentFields
-	} else {
-		typeOfFields := reflect.TypeOf(d.Fields)
-		if typeOfFields.Kind() == reflect.Ptr {
-			typeOfFields = typeOfFields.Elem()
-		}
-		if typeOfFields.Kind() != reflect.Struct {
-			return Response{}, fmt.Errorf("Error reading fields, only structs and map[string]interface{} are supported")
-		}
-		fields = d.Fields
-	}
-
 	r := Request{
 		Conn:      c,
-		Query:     fields,
+		Query:     d.Fields,
 		IndexList: []string{d.Index.(string)},
 		TypeList:  []string{d.Type},
 		ExtraArgs: extraArgs,
