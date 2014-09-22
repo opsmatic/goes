@@ -304,7 +304,7 @@ func (req *Request) Run() (Response, error) {
 
 	newReq, err := http.NewRequest(req.method, req.Url(), reader)
 	if err != nil {
-		return Response{}, err
+		return Response{}, fmt.Errorf("Error creating new request: %s", err)
 	}
 
 	if req.method == "POST" || req.method == "PUT" {
@@ -313,14 +313,14 @@ func (req *Request) Run() (Response, error) {
 
 	resp, err := req.Conn.Client.Do(newReq)
 	if err != nil {
-		return Response{}, err
+		return Response{}, fmt.Errorf("Error submitting request: %s", err)
 	}
 
 	defer resp.Body.Close()
 
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		return Response{}, err
+		return Response{}, fmt.Errorf("Error reading response: %s", err)
 	}
 
 	if resp.StatusCode > 201 && resp.StatusCode < 400 {
@@ -330,7 +330,7 @@ func (req *Request) Run() (Response, error) {
 	esResp := new(Response)
 	err = json.Unmarshal(body, &esResp)
 	if err != nil {
-		return Response{}, err
+		return Response{}, fmt.Errorf("Error unmarshalling response: %s. Response status code: %d. Body: %s", err, resp.StatusCode, string(body))
 	}
 
 	if esResp.Error != "" {
