@@ -330,7 +330,7 @@ func (req *Request) Run() (Response, error) {
 	esResp := new(Response)
 	err = json.Unmarshal(body, &esResp)
 	if err != nil {
-		return Response{}, fmt.Errorf("Error unmarshalling response: %s. Body: %s", err, string(body))
+		return Response{}, fmt.Errorf("Error unmarshalling response: %s. Response status code: %d. Body: %s", err, resp.StatusCode, string(body))
 	}
 
 	if esResp.Error != "" {
